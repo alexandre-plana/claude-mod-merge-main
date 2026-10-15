@@ -1,7 +1,7 @@
 {
   "name": "merge-main",
   "version": "0.1.0",
-  "description": "Panneau latéral qui montre le retard de la branche de la session sur main et propose de le fusionner : la session principale décide si c'est le bon moment, puis lance un sous-agent pour le merge.",
+  "description": "Bande permanente au-dessus de la barre de chat : retard de la branche de la session sur main, et merge via un sous-agent après accord de la session principale.",
   "author": {
     "name": "Alexandre Plana"
   },

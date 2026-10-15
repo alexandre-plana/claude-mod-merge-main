@@ -2,9 +2,7 @@ import type { Register } from 'claude-code'
 
 import type { Behind, Status } from '../types'
 
-const PANE = 'merge-main'
-
-const ASK = (b: Behind) => `The person clicked "Merge ${b.base}" in the merge-main panel. Branch \`${b.branch}\` is ${b.behind} commit(s) behind \`${b.base}\`${b.stat ? ` (${b.stat})` : ''}.
+const ASK = (b: Behind) => `The person clicked "Merge ${b.base}" in the merge-main band. Branch \`${b.branch}\` is ${b.behind} commit(s) behind \`${b.base}\`${b.stat ? ` (${b.stat})` : ''}.
 
 First decide whether NOW is a good moment to merge ${b.base} into this branch. It is NOT a good moment if, for example: you are in the middle of a multi-step change, edits are half done or uncommitted work would be tangled with the merge, a build/test/long-running task is in progress, or the incoming changes touch the files you are working on and you have not finished them.
 
@@ -46,30 +44,29 @@ async function compute(git: Git, isFetch: boolean): Promise<Behind | null> {
 export const register: Register = on => {
   let behindNow: Behind | null = null
   let statusNow: Status = { kind: 'idle' }
-  let isPaneOpen = false
   let isAskRunning = false
 
   on('session.start', async ($, e, next) => {
     const git: Git = (...argv) => $.process.run(['git', ...argv], { timeoutMs: 30000 })
     await $.command.register({
       name: 'merge-main',
-      description: 'Show how far this branch is behind main, with a merge button',
+      description: 'Refresh how far this branch is behind main',
     })
     behindNow = await compute(git, true)
-    if (behindNow && behindNow.behind > 0) {
-      isPaneOpen = true
-      void $.ui.open({ id: PANE, title: 'Merge main', columns: 40 })
-    }
+    $.ui.invalidate('ui.render')
     return next(e)
   })
 
   on('command.run', { command: 'merge-main' }, async $ => {
     const git: Git = (...argv) => $.process.run(['git', ...argv], { timeoutMs: 30000 })
     behindNow = await compute(git, true)
-    isPaneOpen = true
-    await $.ui.open({ id: PANE, title: 'Merge main', columns: 40 })
     $.ui.invalidate('ui.render')
-    return { text: 'merge-main panel opened.' }
+    const b = behindNow
+    return {
+      text: b
+        ? `${b.branch}: ${b.behind} behind ${b.base}, ${b.ahead} ahead.`
+        : 'No main branch to compare with, or not a git repository.',
+    }
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -80,29 +77,17 @@ export const register: Register = on => {
       isAskRunning = false
       statusNow = { kind: 'idle' }
     }
-    const isBehind = !!behindNow && behindNow.behind > 0
-    if (isBehind && !isPaneOpen) {
-      isPaneOpen = true
-      void $.ui.open({ id: PANE, title: 'Merge main', columns: 40 })
-    } else if (!isBehind && isPaneOpen) {
-      isPaneOpen = false
-      await $.ui.close({ id: PANE })
-    }
     $.ui.invalidate('ui.render')
     return next(e)
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e, next) => {
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const b = behindNow
     const status = statusNow
+    const below = await next(e)
+    if (e.props.hasSurvey || !b) return below
+
     const { Box, Text, Button } = $.ui.resolve(e)
-    if (!b) {
-      return (
-        <Box flexDirection="column">
-          <Text dimColor>No main branch to compare with, or not a git repository.</Text>
-        </Box>
-      )
-    }
     const git: Git = (...argv) => $.process.run(['git', ...argv], { timeoutMs: 30000 })
 
     const onMerge = async () => {
@@ -119,28 +104,24 @@ export const register: Register = on => {
       $.ui.invalidate('ui.render')
     }
 
+    const summary =
+      b.behind === 0
+        ? `${b.branch} · up to date with ${b.base}`
+        : `${b.branch} · ${b.behind} behind ${b.base}${b.ahead ? `, ${b.ahead} ahead` : ''}${b.stat ? ` · ${b.stat}` : ''}`
+
     return (
       <Box flexDirection="column">
-        <Text bold>
-          {b.branch}
-        </Text>
-        <Text>
-          {b.behind === 0 ? `Up to date with ${b.base}` : `${b.behind} behind ${b.base}`}
-          {b.ahead ? `, ${b.ahead} ahead` : ''}
-        </Text>
-        {b.stat ? <Text dimColor>{b.stat}</Text> : null}
-        {b.isDirty ? <Text color="yellow">uncommitted changes</Text> : null}
-        {b.commits.map(c => (
-          <Text dimColor>· {c}</Text>
-        ))}
-        {status.kind === 'asking' && <Text dimColor>Asking the session…</Text>}
-        {status.kind === 'checking' && <Text dimColor>Fetching…</Text>}
         <Box>
+          <Text dimColor={b.behind === 0}>{summary}{b.isDirty ? ' · uncommitted changes' : ''}{'  '}</Text>
+          {status.kind === 'asking' && <Text dimColor>Asking the session…{'  '}</Text>}
+          {status.kind === 'checking' && <Text dimColor>Fetching…{'  '}</Text>}
           {b.behind > 0 && status.kind === 'idle' && (
             <Button key="merge" label={`Merge ${b.base}`} onPress={onMerge} />
           )}
           <Button key="refresh" label="Refresh" onPress={onRefresh} />
         </Box>
+        {b.behind > 0 && b.commits.length > 0 && <Text dimColor>{b.commits.join(' · ')}</Text>}
+        {below}
       </Box>
     )
   })
