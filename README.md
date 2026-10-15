@@ -22,33 +22,45 @@ Le retard est recalculé au démarrage (avec un `git fetch`) et à la fin de cha
 
 Prérequis : une version de Claude Code qui prend en charge les mods (hooks `ui.render`, `$.agent`, `$.prompt.submit`).
 
-1. Clone le dépôt à un emplacement stable :
+### Pour toutes les sessions (recommandé)
 
-   ```bash
-   git clone https://github.com/alexandre-plana/claude-mod-merge-main.git
-   ```
-
-2. Charge le mod dans toutes tes sessions en définissant la variable d'environnement `CLAUDE_CODE_PLUGIN_DIRS` avec le chemin du dossier cloné (plusieurs dossiers : sépare-les par `;` sous Windows, `:` ailleurs).
-
-   Windows (PowerShell) :
-
-   ```powershell
-   [Environment]::SetEnvironmentVariable('CLAUDE_CODE_PLUGIN_DIRS', 'C:\chemin\vers\claude-mod-merge-main', 'User')
-   ```
-
-   macOS / Linux (à ajouter à `~/.zshrc` ou `~/.bashrc`) :
-
-   ```bash
-   export CLAUDE_CODE_PLUGIN_DIRS="$HOME/chemin/vers/claude-mod-merge-main"
-   ```
-
-3. Redémarre Claude Code (et l'application desktop si besoin). Les sessions déjà ouvertes ne chargent pas le mod : il faut les relancer.
-
-Alternative, pour une seule session en ligne de commande :
+Claude Code charge au démarrage chaque mod placé dans `~/.claude/mods/`. Il suffit de cloner le dépôt là :
 
 ```bash
-claude --plugin-dir /chemin/vers/claude-mod-merge-main
+git clone https://github.com/alexandre-plana/claude-mod-merge-main.git ~/.claude/mods/merge-main
 ```
+
+Sous Windows, `~` est ton dossier utilisateur (`C:\Users\<toi>\.claude\mods\merge-main`).
+
+Les sessions déjà ouvertes ne chargent pas un mod ajouté après leur démarrage : relance-les (la conversation se reprend). Les nouvelles sessions le chargent seules.
+
+Pour mettre à jour le mod :
+
+```bash
+git -C ~/.claude/mods/merge-main pull
+```
+
+### Autres façons de le charger
+
+- Un autre emplacement, pour toutes les sessions : clone le dépôt où tu veux et définis `CLAUDE_CODE_PLUGIN_DIRS` avec son chemin (plusieurs dossiers : `;` sous Windows, `:` ailleurs).
+
+  Windows (PowerShell) :
+
+  ```powershell
+  [Environment]::SetEnvironmentVariable('CLAUDE_CODE_PLUGIN_DIRS', 'C:\chemin\vers\claude-mod-merge-main', 'User')
+  ```
+
+  macOS / Linux (à ajouter à `~/.zshrc` ou `~/.bashrc`) :
+
+  ```bash
+  export CLAUDE_CODE_PLUGIN_DIRS="$HOME/chemin/vers/claude-mod-merge-main"
+  ```
+
+- Une seule session en ligne de commande :
+
+  ```bash
+  claude --plugin-dir /chemin/vers/claude-mod-merge-main
+  ```
 
 ### Vérifier
 
