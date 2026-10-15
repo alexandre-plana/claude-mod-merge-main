@@ -1,0 +1,10 @@
+{
+  "name": "merge-main",
+  "version": "0.1.0",
+  "description": "Panneau latéral qui montre le retard de la branche de la session sur main et propose de le fusionner : la session principale décide si c'est le bon moment, puis lance un sous-agent pour le merge.",
+  "author": {
+    "name": "Alexandre Plana"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/alexandre-plana/claude-mod-merge-main"
+}
